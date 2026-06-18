@@ -1,0 +1,433 @@
+{
+  "name": "Utopía — Sistema de Reservas",
+  "nodes": [
+
+    {
+      "id": "wh-disponibilidad",
+      "name": "Webhook Disponibilidad",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 160],
+      "webhookId": "utopia-disponibilidad",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "utopia-disponibilidad",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "*" }
+      }
+    },
+    {
+      "id": "sheets-leer-disp",
+      "name": "Leer Reservas Existentes",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [480, 160],
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "REEMPLAZAR_CON_ID_DEL_GOOGLE_SHEET", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Reservas", "mode": "name" },
+        "filtersUI": {
+          "values": [
+            { "lookupColumn": "fecha",   "lookupValue": "={{ $json.body.fecha }}" },
+            { "lookupColumn": "horario", "lookupValue": "={{ $json.body.horario }}" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REEMPLAZAR_CON_ID_CREDENCIAL", "name": "Google Sheets" }
+      }
+    },
+    {
+      "id": "code-mesas-ocupadas",
+      "name": "Extraer Mesas Ocupadas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 160],
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst mesas = rows\n  .filter(r => r.json.cancelado !== 'Sí')\n  .map(r => r.json.mesa)\n  .filter(Boolean);\nreturn [{ json: { mesas_ocupadas: mesas } }];"
+      }
+    },
+    {
+      "id": "respond-disp",
+      "name": "Responder Disponibilidad",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [960, 160],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "id": "wh-reservar",
+      "name": "Webhook Confirmar Reserva",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 420],
+      "webhookId": "utopia-reservar",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "utopia-reservar",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "*" }
+      }
+    },
+    {
+      "id": "sheets-verificar",
+      "name": "Verificar Mesa Disponible",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [480, 420],
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "REEMPLAZAR_CON_ID_DEL_GOOGLE_SHEET", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Reservas", "mode": "name" },
+        "filtersUI": {
+          "values": [
+            { "lookupColumn": "fecha",   "lookupValue": "={{ $json.body.fecha }}" },
+            { "lookupColumn": "horario", "lookupValue": "={{ $json.body.horario }}" },
+            { "lookupColumn": "mesa",    "lookupValue": "={{ $json.body.mesa }}" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REEMPLAZAR_CON_ID_CREDENCIAL", "name": "Google Sheets" }
+      }
+    },
+    {
+      "id": "code-check-cancelado",
+      "name": "Filtrar Cancelados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 420],
+      "parameters": {
+        "jsCode": "const rows = $input.all().filter(r => r.json.cancelado !== 'Sí');\nreturn rows.length > 0 ? rows : [{ json: {} }];\n"
+      }
+    },
+    {
+      "id": "if-disponible",
+      "name": "¿Mesa disponible?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 420],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $input.all().filter(r => r.json.mesa).length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "code-gen-token",
+      "name": "Generar Token Cancelación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 320],
+      "parameters": {
+        "jsCode": "const body = $('Webhook Confirmar Reserva').item.json.body;\nconst token = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);\nreturn [{ json: { ...body, cancel_token: token } }];"
+      }
+    },
+    {
+      "id": "sheets-guardar",
+      "name": "Guardar Reserva",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1440, 320],
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": { "__rl": true, "value": "REEMPLAZAR_CON_ID_DEL_GOOGLE_SHEET", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Reservas", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id":           "={{ $now.toISO() }}",
+            "nombre":       "={{ $json.nombre }}",
+            "email":        "={{ $json.email }}",
+            "telefono":     "={{ $json.telefono }}",
+            "fecha":        "={{ $json.fecha }}",
+            "horario":      "={{ $json.horario }}",
+            "mesa":         "={{ $json.mesa }}",
+            "personas":     "={{ $json.personas }}",
+            "solicitudes":  "={{ $json.solicitudes }}",
+            "confirmado":   "Sí",
+            "cancelado":    "No",
+            "cancel_token": "={{ $json.cancel_token }}",
+            "asistio":      "",
+            "feedback_enviado": "No"
+          }
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REEMPLAZAR_CON_ID_CREDENCIAL", "name": "Google Sheets" }
+      }
+    },
+    {
+      "id": "gmail-confirmar",
+      "name": "Email Confirmación",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1680, 320],
+      "parameters": {
+        "sendTo": "={{ $('Generar Token Cancelación').item.json.email }}",
+        "subject": "Reserva confirmada en Utopía ✓",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html><html><body style=\"background:#0a0a0a;color:#f0ece4;font-family:Georgia,serif;max-width:560px;margin:0 auto;padding:40px 32px;\">\n<p style=\"font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c9a84c;margin-bottom:24px;\">Utopía · Reserva confirmada</p>\n<h1 style=\"font-weight:300;font-style:italic;font-size:2rem;margin-bottom:8px;\">¡Gracias, {{ $('Generar Token Cancelación').item.json.nombre }}!</h1>\n<p style=\"color:#6b6560;margin-bottom:32px;\">Tu reserva en Utopía ha sido confirmada.</p>\n<div style=\"border:1px solid #1e1e1e;padding:24px;margin-bottom:32px;\">\n  <p style=\"margin:0 0 10px;\"><span style=\"color:#c9a84c;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;\">Fecha</span><br>{{ $('Generar Token Cancelación').item.json.fecha }}</p>\n  <p style=\"margin:0 0 10px;\"><span style=\"color:#c9a84c;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;\">Horario</span><br>{{ $('Generar Token Cancelación').item.json.horario }} hs</p>\n  <p style=\"margin:0 0 10px;\"><span style=\"color:#c9a84c;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;\">Mesa</span><br>{{ $('Generar Token Cancelación').item.json.mesa }}</p>\n  <p style=\"margin:0;\"><span style=\"color:#c9a84c;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;\">Personas</span><br>{{ $('Generar Token Cancelación').item.json.personas }}</p>\n</div>\n<p style=\"color:#6b6560;font-size:0.85rem;margin-bottom:32px;\">📍 Punta Carretas, Montevideo · Valet parking disponible<br>Ante cualquier consulta escribinos a reservas@utopia.com.uy</p>\n<div style=\"border-top:1px solid #1e1e1e;padding-top:28px;margin-top:8px;\">\n  <p style=\"font-size:11px;color:#6b6560;margin-bottom:14px;letter-spacing:0.05em;\">¿Necesitás cancelar? Podés hacerlo hasta 24 hs antes de tu reserva.</p>\n  <a href=\"https://n8n.revcorelabs.com/webhook/utopia-cancelar?token={{ $('Generar Token Cancelación').item.json.cancel_token }}\" style=\"display:inline-block;padding:12px 28px;border:1px solid #c9a84c;color:#c9a84c;text-decoration:none;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;\">Cancelar reserva</a>\n</div>\n<div style=\"margin-top:40px;padding-top:24px;border-top:1px solid #1e1e1e;\">\n  <p style=\"font-style:italic;color:#6b6560;font-size:0.8rem;\">Utopía · Alta Cocina</p>\n</div>\n</body></html>",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": { "id": "REEMPLAZAR_CON_ID_CREDENCIAL_GMAIL", "name": "Gmail" }
+      }
+    },
+    {
+      "id": "respond-ok",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1920, 320],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "respond-ocupada",
+      "name": "Responder Mesa Ocupada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 560],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"mesa_ocupada\": true, \"success\": false }",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "id": "wh-cancelar",
+      "name": "Webhook Cancelar Reserva",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 720],
+      "webhookId": "utopia-cancelar",
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "utopia-cancelar",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "sheets-buscar-token",
+      "name": "Buscar Reserva por Token",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [480, 720],
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "REEMPLAZAR_CON_ID_DEL_GOOGLE_SHEET", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Reservas", "mode": "name" },
+        "filtersUI": {
+          "values": [
+            { "lookupColumn": "cancel_token", "lookupValue": "={{ $json.query.token }}" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REEMPLAZAR_CON_ID_CREDENCIAL", "name": "Google Sheets" }
+      }
+    },
+    {
+      "id": "code-check-cancelacion",
+      "name": "Verificar Plazo Cancelación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 720],
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nif (!rows.length || !rows[0].json.fecha) {\n  return [{ json: { valida: false, motivo: 'Reserva no encontrada.' } }];\n}\nconst r = rows[0].json;\nif (r.cancelado === 'Sí') {\n  return [{ json: { valida: false, motivo: 'Esta reserva ya fue cancelada anteriormente.' } }];\n}\nconst fechaReserva = new Date(r.fecha + 'T' + (r.horario || '20:00') + ':00');\nconst horasRestantes = (fechaReserva - new Date()) / (1000 * 60 * 60);\nif (horasRestantes < 24) {\n  return [{ json: { valida: false, motivo: 'El plazo de cancelación venció (debe ser con más de 24 hs de anticipación).' } }];\n}\nreturn [{ json: { valida: true, ...r } }];"
+      }
+    },
+    {
+      "id": "if-cancelacion-valida",
+      "name": "¿Cancelación válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 720],
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "cond-val",
+              "leftValue": "={{ $json.valida }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "sheets-cancelar",
+      "name": "Marcar como Cancelada",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1200, 640],
+      "parameters": {
+        "operation": "update",
+        "documentId": { "__rl": true, "value": "REEMPLAZAR_CON_ID_DEL_GOOGLE_SHEET", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Reservas", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cancel_token": "={{ $json.cancel_token }}",
+            "cancelado": "Sí"
+          }
+        },
+        "matchingColumns": ["cancel_token"],
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REEMPLAZAR_CON_ID_CREDENCIAL", "name": "Google Sheets" }
+      }
+    },
+    {
+      "id": "gmail-cancelacion",
+      "name": "Email Cancelación Confirmada",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1440, 640],
+      "parameters": {
+        "sendTo": "={{ $('Verificar Plazo Cancelación').item.json.email }}",
+        "subject": "Reserva cancelada — Utopía",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html><html><body style=\"background:#0a0a0a;color:#f0ece4;font-family:Georgia,serif;max-width:560px;margin:0 auto;padding:40px 32px;\">\n<p style=\"font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c9a84c;margin-bottom:24px;\">Utopía · Cancelación</p>\n<h1 style=\"font-weight:300;font-style:italic;font-size:2rem;margin-bottom:8px;\">Reserva cancelada</h1>\n<p style=\"color:#6b6560;margin-bottom:32px;\">Hola {{ $('Verificar Plazo Cancelación').item.json.nombre }}, tu reserva del {{ $('Verificar Plazo Cancelación').item.json.fecha }} a las {{ $('Verificar Plazo Cancelación').item.json.horario }} hs fue cancelada exitosamente.</p>\n<p style=\"color:#6b6560;font-size:0.85rem;\">Si querés reservar en otra fecha, podés hacerlo desde nuestro sitio.<br>reservas@utopia.com.uy</p>\n<div style=\"margin-top:40px;padding-top:24px;border-top:1px solid #1e1e1e;\">\n  <p style=\"font-style:italic;color:#6b6560;font-size:0.8rem;\">Utopía · Alta Cocina · Punta Carretas, Montevideo</p>\n</div>\n</body></html>",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": { "id": "REEMPLAZAR_CON_ID_CREDENCIAL_GMAIL", "name": "Gmail" }
+      }
+    },
+    {
+      "id": "respond-cancelado-ok",
+      "name": "Responder Cancelación OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1680, 640],
+      "parameters": {
+        "respondWith": "html",
+        "responseBody": "=<!DOCTYPE html><html><body style=\"background:#080808;color:#f0ece4;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;\"><div style=\"text-align:center;padding:60px 32px;\"><p style=\"color:#c9a84c;letter-spacing:0.3em;font-size:11px;text-transform:uppercase;margin-bottom:24px;\">Utopía</p><h1 style=\"font-weight:300;font-style:italic;font-size:2.2rem;margin-bottom:16px;\">Reserva cancelada</h1><p style=\"color:#5a5550;font-size:0.9rem;\">Tu lugar fue liberado correctamente.<br>Esperamos verte pronto.</p></div></body></html>",
+        "options": {}
+      }
+    },
+    {
+      "id": "respond-cancelacion-invalida",
+      "name": "Responder Error Cancelación",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 840],
+      "parameters": {
+        "respondWith": "html",
+        "responseBody": "=<!DOCTYPE html><html><body style=\"background:#080808;color:#f0ece4;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;\"><div style=\"text-align:center;padding:60px 32px;\"><p style=\"color:#c9784c;letter-spacing:0.3em;font-size:11px;text-transform:uppercase;margin-bottom:24px;\">Utopía</p><h1 style=\"font-weight:300;font-size:1.8rem;margin-bottom:16px;\">No fue posible cancelar</h1><p style=\"color:#5a5550;font-size:0.9rem;\">{{ $('Verificar Plazo Cancelación').item.json.motivo }}<br><br>Ante cualquier consulta escribinos a reservas@utopia.com.uy</p></div></body></html>",
+        "options": { "responseCode": 400 }
+      }
+    }
+
+  ],
+
+  "connections": {
+    "Webhook Disponibilidad": {
+      "main": [[{ "node": "Leer Reservas Existentes", "type": "main", "index": 0 }]]
+    },
+    "Leer Reservas Existentes": {
+      "main": [[{ "node": "Extraer Mesas Ocupadas", "type": "main", "index": 0 }]]
+    },
+    "Extraer Mesas Ocupadas": {
+      "main": [[{ "node": "Responder Disponibilidad", "type": "main", "index": 0 }]]
+    },
+    "Webhook Confirmar Reserva": {
+      "main": [[{ "node": "Verificar Mesa Disponible", "type": "main", "index": 0 }]]
+    },
+    "Verificar Mesa Disponible": {
+      "main": [[{ "node": "Filtrar Cancelados", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Cancelados": {
+      "main": [[{ "node": "¿Mesa disponible?", "type": "main", "index": 0 }]]
+    },
+    "¿Mesa disponible?": {
+      "main": [
+        [{ "node": "Generar Token Cancelación", "type": "main", "index": 0 }],
+        [{ "node": "Responder Mesa Ocupada",    "type": "main", "index": 0 }]
+      ]
+    },
+    "Generar Token Cancelación": {
+      "main": [[{ "node": "Guardar Reserva", "type": "main", "index": 0 }]]
+    },
+    "Guardar Reserva": {
+      "main": [[{ "node": "Email Confirmación", "type": "main", "index": 0 }]]
+    },
+    "Email Confirmación": {
+      "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]]
+    },
+    "Webhook Cancelar Reserva": {
+      "main": [[{ "node": "Buscar Reserva por Token", "type": "main", "index": 0 }]]
+    },
+    "Buscar Reserva por Token": {
+      "main": [[{ "node": "Verificar Plazo Cancelación", "type": "main", "index": 0 }]]
+    },
+    "Verificar Plazo Cancelación": {
+      "main": [[{ "node": "¿Cancelación válida?", "type": "main", "index": 0 }]]
+    },
+    "¿Cancelación válida?": {
+      "main": [
+        [{ "node": "Marcar como Cancelada",        "type": "main", "index": 0 }],
+        [{ "node": "Responder Error Cancelación",   "type": "main", "index": 0 }]
+      ]
+    },
+    "Marcar como Cancelada": {
+      "main": [[{ "node": "Email Cancelación Confirmada", "type": "main", "index": 0 }]]
+    },
+    "Email Cancelación Confirmada": {
+      "main": [[{ "node": "Responder Cancelación OK", "type": "main", "index": 0 }]]
+    }
+  },
+
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": ["utopia", "reservas", "restaurante"]
+}
