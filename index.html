@@ -405,63 +405,7 @@
       color: var(--gold);
     }
 
-    /* Panel 2 — grid izquierda/derecha */
-    .p2-grid {
-      display: grid;
-      grid-template-columns: 200px 1fr;
-      gap: 40px;
-      align-items: start;
-    }
-
-    .p2-left {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .p2-left .plan-note {
-      margin-bottom: 0;
-      font-family: var(--serif);
-      font-size: 1.3rem;
-      font-style: italic;
-      color: var(--cream);
-      font-weight: 300;
-      line-height: 1.4;
-    }
-
-    /* Layout foto */
-    .layout-photo {
-      width: 100%;
-      margin-bottom: 24px;
-      overflow: hidden;
-      max-height: 260px;
-      position: relative;
-    }
-
-    .layout-photo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center top;
-      display: block;
-      opacity: 0.7;
-    }
-
-    .layout-photo::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to bottom, transparent 50%, var(--black) 100%);
-    }
-
-    /* Plano del salón */
-    .plan-note {
-      font-size: 0.86rem;
-      color: var(--muted);
-      margin-bottom: 24px;
-      letter-spacing: 0.04em;
-    }
-
+    /* Panel 2 — mapa de mesas */
     .plan-loading {
       padding: 48px 0;
       font-size: 0.86rem;
@@ -469,94 +413,123 @@
       letter-spacing: 0.1em;
     }
 
-    .floor-plan {
+    /* Zonas del plano */
+    .floor-zone {
       border: 1px solid var(--border);
-      padding: 28px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+    }
+    .floor-zone:last-child { margin-bottom: 0; }
+
+    .zone-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .zone { margin-bottom: 28px; }
-    .zone:last-of-type { margin-bottom: 0; }
-
-    .zone-lbl {
+    .zone-name {
       font-size: 0.58rem;
       letter-spacing: 0.28em;
       text-transform: uppercase;
       color: var(--gold);
-      margin-bottom: 14px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-      display: block;
     }
 
-    .tables {
+    .zone-desc {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .zone-tables {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .tables-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 48px);
       gap: 10px;
     }
 
-    .tbl {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
+    /* Tarjeta de mesa */
+    .tbl-card {
+      width: 76px;
+      height: 68px;
       border: 1px solid var(--border);
       background: transparent;
       cursor: pointer;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 0.6rem;
-      color: var(--muted);
+      gap: 5px;
       transition: all 0.2s;
       user-select: none;
     }
 
-    .tbl.for4 { border-radius: 4px; }
-
-    .tbl:hover:not(.occupied) { border-color: rgba(240,236,228,0.5); color: var(--cream); }
-
-    .tbl.selected {
-      border-color: var(--gold);
-      background: rgba(201,168,76,0.12);
-      color: var(--gold);
+    .tbl-card:hover:not(.occupied):not(.small) {
+      border-color: rgba(240,236,228,0.4);
     }
 
-    .tbl.occupied {
+    .tbl-name {
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      color: var(--cream);
+      letter-spacing: 0.05em;
+      font-weight: 300;
+    }
+
+    .tbl-cap {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .tbl-card.selected {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.1);
+    }
+    .tbl-card.selected .tbl-name { color: var(--gold); }
+    .tbl-card.selected .tbl-cap  { color: rgba(201,168,76,0.6); }
+
+    .tbl-card.occupied {
       opacity: 0.18;
       cursor: not-allowed;
       pointer-events: none;
     }
 
-    .plan-legend {
+    .tbl-card.small {
+      opacity: 0.28;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* Leyenda */
+    .floor-legend {
       display: flex;
+      flex-wrap: wrap;
       gap: 20px;
       margin-top: 20px;
-      padding-top: 18px;
+      padding-top: 16px;
       border-top: 1px solid var(--border);
     }
 
     .leg {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       font-size: 0.62rem;
       color: var(--muted);
-      letter-spacing: 0.08em;
+      letter-spacing: 0.07em;
     }
 
     .leg-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
+      width: 10px;
+      height: 10px;
       border: 1px solid var(--border);
     }
 
-    .leg-dot.sel { border-color: var(--gold); background: rgba(201,168,76,0.12); }
-    .leg-dot.occ { opacity: 0.18; }
+    .leg-dot.sel  { border-color: var(--gold); background: rgba(201,168,76,0.1); }
+    .leg-dot.occ  { opacity: 0.18; }
+    .leg-dot.sml  { opacity: 0.28; }
 
     /* Navegación paneles */
     .panel-nav {
@@ -829,37 +802,40 @@
 
     <!-- Panel 2: Plano -->
     <div class="panel" id="p2">
-      <div class="p2-grid">
-        <!-- Columna izquierda -->
-        <div class="p2-left">
-          <p class="plan-note">Seleccioná<br>tu mesa<br>preferida</p>
-          <div class="layout-photo">
-            <img src="layout.png" alt="Planta del restaurante">
+      <div id="planLoad" class="plan-loading"><span class="spin"></span>Consultando disponibilidad…</div>
+      <div id="planMap" style="display:none;">
+
+        <div class="floor-zone">
+          <div class="zone-header">
+            <span class="zone-name">Salón principal</span>
+            <span class="zone-desc">Interior · climatizado</span>
           </div>
-          <div class="plan-legend">
-            <div class="leg"><div class="leg-dot"></div>Disponible</div>
-            <div class="leg"><div class="leg-dot sel"></div>Seleccionada</div>
-            <div class="leg"><div class="leg-dot occ"></div>Ocupada</div>
-          </div>
+          <div class="zone-tables" id="zSalon"></div>
         </div>
-        <!-- Columna derecha: plano interactivo -->
-        <div>
-          <div id="planLoad" class="plan-loading"><span class="spin"></span>Consultando disponibilidad…</div>
-          <div id="planMap" class="floor-plan" style="display:none;">
-            <div class="zone">
-              <span class="zone-lbl">Salón principal</span>
-              <div class="tables tables-grid" id="zSalon"></div>
-            </div>
-            <div class="zone">
-              <span class="zone-lbl">Terraza</span>
-              <div class="tables" id="zTerraza"></div>
-            </div>
-            <div class="zone">
-              <span class="zone-lbl">Utopía Lounge</span>
-              <div class="tables" id="zLounge"></div>
-            </div>
+
+        <div class="floor-zone">
+          <div class="zone-header">
+            <span class="zone-name">Terraza</span>
+            <span class="zone-desc">Exterior · al aire libre</span>
           </div>
+          <div class="zone-tables" id="zTerraza"></div>
         </div>
+
+        <div class="floor-zone">
+          <div class="zone-header">
+            <span class="zone-name">Utopía Lounge</span>
+            <span class="zone-desc">Zona íntima · ambiente exclusivo</span>
+          </div>
+          <div class="zone-tables" id="zLounge"></div>
+        </div>
+
+        <div class="floor-legend">
+          <div class="leg"><div class="leg-dot"></div>Disponible</div>
+          <div class="leg"><div class="leg-dot sel"></div>Seleccionada</div>
+          <div class="leg"><div class="leg-dot occ"></div>Ocupada</div>
+          <div class="leg"><div class="leg-dot sml"></div>Capacidad insuficiente</div>
+        </div>
+
       </div>
       <div class="panel-nav">
         <button class="btn-volver" onclick="goP(1)">← Volver</button>
@@ -936,9 +912,14 @@
     fechaEl.min = new Date().toISOString().split('T')[0];
     fechaEl.addEventListener('change', function() {
       const d = new Date(this.value + 'T12:00:00');
-      if (![0,4,5,6].includes(d.getDay())) {
-        document.getElementById('e1').textContent = 'Solo Jue, Vie, Sáb y Dom.';
-        this.value = '';
+      const day = d.getDay(); // 0=Dom 1=Lun 2=Mar 3=Mié 4=Jue 5=Vie 6=Sáb
+      if (![0,4,5,6].includes(day)) {
+        // Avanzar al próximo jueves
+        const salto = [3,2,1][day - 1] || 0; // Lun→+3, Mar→+2, Mié→+1
+        d.setDate(d.getDate() + salto);
+        this.value = d.toISOString().split('T')[0];
+        document.getElementById('e1').textContent = 'Abrimos jue–dom. Te llevamos al próximo jueves.';
+        setTimeout(() => { if (document.getElementById('e1').textContent.includes('jue')) document.getElementById('e1').textContent = ''; }, 3500);
       } else {
         document.getElementById('e1').textContent = '';
       }
@@ -982,23 +963,25 @@
     };
 
     function buildMap(occ = []) {
-      const map = {
-        salon:   { zid: 'zSalon',   grid: true  },
-        terraza: { zid: 'zTerraza', grid: false },
-        lounge:  { zid: 'zLounge',  grid: false },
-      };
-      Object.entries(map).forEach(([zone, cfg]) => {
-        const wrap = document.getElementById(cfg.zid);
+      const zones = [
+        { id: 'zSalon',   mesas: MESAS.salon   },
+        { id: 'zTerraza', mesas: MESAS.terraza },
+        { id: 'zLounge',  mesas: MESAS.lounge  },
+      ];
+      zones.forEach(({ id, mesas }) => {
+        const wrap = document.getElementById(id);
         wrap.innerHTML = '';
-        MESAS[zone].forEach(m => {
-          const el = document.createElement('div');
-          el.className = 'tbl'
-            + (m.c === 4 ? ' for4' : '')
-            + (occ.includes(m.id) ? ' occupied' : '');
-          el.textContent = m.id;
-          if (!occ.includes(m.id)) {
+        mesas.forEach(m => {
+          const isOcc   = occ.includes(m.id);
+          const isSmall = m.c < guests;
+          const el = document.createElement('button');
+          el.className = 'tbl-card'
+            + (isOcc   ? ' occupied' : '')
+            + (!isOcc && isSmall ? ' small' : '');
+          el.innerHTML = `<span class="tbl-name">${m.id}</span><span class="tbl-cap">${m.c}p</span>`;
+          if (!isOcc && !isSmall) {
             el.addEventListener('click', () => {
-              document.querySelectorAll('.tbl.selected').forEach(t => t.classList.remove('selected'));
+              document.querySelectorAll('.tbl-card.selected').forEach(t => t.classList.remove('selected'));
               selMesa = m.id;
               el.classList.add('selected');
               document.getElementById('e2').textContent = '';
