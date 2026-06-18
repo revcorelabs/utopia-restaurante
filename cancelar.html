@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Utopía — Cancelar Reserva</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #080808;
+      color: #f0ece4;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+    }
+
+    .card {
+      text-align: center;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .logo {
+      font-size: 11px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: #c9a84c;
+      margin-bottom: 48px;
+    }
+
+    .icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      margin: 0 auto 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .icon.loading {
+      border: 2px solid #2a2a2a;
+      border-top-color: #c9a84c;
+      animation: spin 0.9s linear infinite;
+      font-size: 0;
+    }
+
+    .icon.success { background: rgba(201,168,76,0.1); border: 1px solid #c9a84c; }
+    .icon.error   { background: rgba(180,60,60,0.1);  border: 1px solid #b43c3c; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    h1 {
+      font-weight: 300;
+      font-size: 1.9rem;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+
+    h1.loading-text { font-style: italic; color: #9a9390; }
+    h1.success-text { font-style: italic; }
+    h1.error-text   { font-size: 1.5rem; }
+
+    p {
+      color: #6b6560;
+      font-size: 0.92rem;
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: #1e1e1e;
+      margin: 32px auto;
+    }
+
+    a.btn {
+      display: inline-block;
+      padding: 13px 32px;
+      border: 1px solid #c9a84c;
+      color: #c9a84c;
+      text-decoration: none;
+      font-family: Arial, sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    a.btn:hover {
+      background: #c9a84c;
+      color: #080808;
+    }
+
+    .footer {
+      margin-top: 56px;
+      font-style: italic;
+      color: #3a3530;
+      font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <p class="logo">Utopía</p>
+    <div class="icon loading" id="icon"></div>
+    <h1 class="loading-text" id="title">Procesando cancelación…</h1>
+    <p id="msg">Estamos liberando tu lugar. Un momento.</p>
+    <p class="footer">Utopía · Alta Cocina · Punta Carretas, Montevideo</p>
+  </div>
+
+  <script>
+    const WEBHOOK = 'https://n8n.revcorelabs.com/webhook/utopia-cancelar';
+
+    async function cancelar() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+
+      if (!token) {
+        mostrar('error', 'Link inválido', 'Este link de cancelación no es válido.<br>Revisá el email original o escribinos a reservas@utopia.com.uy');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${WEBHOOK}?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+
+        if (data.success) {
+          mostrar('success', 'Reserva cancelada', 'Tu lugar fue liberado correctamente.<br>Esperamos verte en otra ocasión.', true);
+        } else {
+          mostrar('error', 'No fue posible cancelar', data.motivo || 'Ocurrió un error inesperado.<br>Escribinos a reservas@utopia.com.uy');
+        }
+      } catch (e) {
+        mostrar('error', 'Error de conexión', 'No pudimos procesar tu solicitud.<br>Intentá nuevamente o escribinos a reservas@utopia.com.uy');
+      }
+    }
+
+    function mostrar(tipo, titulo, mensaje, botonVolver) {
+      const iconos = { success: '✓', error: '✕' };
+      document.getElementById('icon').className = `icon ${tipo}`;
+      document.getElementById('icon').textContent = iconos[tipo] || '';
+      document.getElementById('title').className = `${tipo}-text`;
+      document.getElementById('title').textContent = titulo;
+      document.getElementById('msg').innerHTML = mensaje;
+
+      if (botonVolver) {
+        const div = document.createElement('div');
+        div.innerHTML = `<div class="divider"></div><a class="btn" href="index.html">Volver al restaurante</a>`;
+        document.getElementById('card').insertBefore(div, document.querySelector('.footer'));
+      }
+    }
+
+    cancelar();
+  </script>
+</body>
+</html>
